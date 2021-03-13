@@ -3,7 +3,7 @@ const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
 const messageFormatter = require('./utils/messages');
-const {userJoin , getCurrentUser} = require('./utils/users');
+const {userJoin , getCurrentUser, leftUser , getRoomUsers} = require('./utils/users');
 
 const app = express();
 const server = http.createServer(app);
@@ -24,6 +24,12 @@ io.on('connection' , socket => {
         // Broadcast when a user connects
         socket.broadcast.to(user.room).emit('message' , messageFormatter('Chatcord bot' , `${user.username} has joined the room`)); // This will send message to all connections to websocket except the client
         // Use io.emit(); to send all clients to websocket
+
+        //Send users and room info
+        io.to(user.room).emit('roomUsers' , {
+            room: user.room,
+            users: getRoomUsers(user.room),
+        });
     });
 
     socket.on('chatMessage', (msg) => {
@@ -33,8 +39,14 @@ io.on('connection' , socket => {
 
     // Runs when client disconnects
     socket.on('disconnect', () => {
-        io.emit('message', messageFormatter('Chatcord bot' , 'A user has left the chat.'));
+        const disconnectedUser = leftUser(socket.id);
+        io.to(disconnectedUser.room).emit('message', messageFormatter('Chatcord bot' , `${disconnectedUser.username} has left the chat.`));
+        io.to(disconnectedUser.room).emit('roomUsers' , {
+            room: disconnectedUser.room,
+            users: getRoomUsers(disconnectedUser.room),
+        });
     });
+
 });
 
 const PORT = 3000 || process.env.PORT;
