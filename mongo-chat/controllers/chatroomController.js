@@ -23,3 +23,8 @@ exports.createChatroom = async (req , res) => {
     })
 
 }
+
+exports.getAllChatrooms = async (req , res) => {
+    const chatrooms = await Chatroom.find({});
+    res.json(chatrooms);
+}
